@@ -1,0 +1,122 @@
+
+% K Means Clustering on IRIS dataset
+%Author : Gauarv Gupta
+%Date: 7/04/2022
+
+clear all
+close all
+format long
+tic
+filename = 'iris.data.txt';
+
+A = dataset('File', filename, 'Delimiter', ',', 'ReadVarNames', false);
+o = unique(A(:, 5));%% take unique value of set
+o = dataset2cell(o);%% convert the dataset array into cell array
+o = o(2 : end, :);
+p = [1 : size(o, 1)];%% convert class into values like 1 2 3
+C = containers.Map(o, p);%% map the key with value
+t = A(:, 5);%% take last row in variable t
+t = dataset2cell(t);%% convert the dataset array into cell array
+t = t(2 : end);
+A.Var5 = C.values(t);%% convert the values of the data row 5 into classes numeric values 1 2 3
+U = A(:, 5);
+U = dataset2cell(U);
+U = U(2 : end);
+U = cell2mat(U);%% converts a cell array into an ordinary array.
+U = mat2dataset(U); %%Convert Matrix to Dataset Array
+A(:, 5) = U;
+my_data = double(A);
+% load data
+data_size = size(my_data);
+num = data_size(1);
+data = my_data(:, 1:4);
+labelOrg = my_data(:, 5);
+% normalize data
+epsilon = 0.01;
+data_mean = mean(data);
+data_mean = repmat(data_mean, [num,1]);
+data_var = var(data);
+data_var = repmat(data_var, [num,1]);
+data = (data - data_mean)./sqrt(data_var + epsilon);
+% 10 times with random seed points
+for times = 1:10
+    % perform k_means algorithm 
+    clusters = 3;           %% selected as per classes in dataset
+    [cluster_label, step] = k_means(data, clusters, num);
+    
+    % evaluate the cluster result according to given label
+    eval = zeros(3, clusters);
+    for i = 1:3
+        for j = 1:clusters
+            for k = 1:num
+                if ((labelOrg(k)==i) && (cluster_label(k)==j))
+                    eval(i, j) = eval(i, j) + 1;
+                end
+            end
+        end
+    end
+    
+    % accuracy matrix formation 
+    accuracyMatrix = zeros(3,3);
+    accuracyMatrix(1,1) = eval(2,3) + eval(2,3);            % true negative
+    accuracyMatrix(1,2) = eval(2,1) + eval(3,2);            % false positive
+    accuracyMatrix(2,1) = eval(1,3) + eval(3,1);            % false negative
+    accuracyMatrix(2,2) = eval(1,1) + eval(2,2) + eval(3,3);% true positive
+    for i = 1:2
+    accuracyMatrix(i,3) = accuracyMatrix(i,1) + accuracyMatrix(i,2);
+    end
+    for i = 1:3
+    accuracyMatrix(3,i) = accuracyMatrix(1,i) + accuracyMatrix(2,i);
+    end 
+     disp(accuracyMatrix);
+         x = (accuracyMatrix(1,1)+accuracyMatrix(2,2))/368;
+% Accuracy 
+fprintf("Accuracy of this is:- ");
+x
+% Error rate
+fprintf("Error rate of this is:- ");
+y=1-x
+
+%precision
+fprintf("precision of this is:- ");
+z = accuracyMatrix(2,2)/accuracyMatrix(1,2)+accuracyMatrix(2,2);
+z
+
+%Recall
+fprintf("Recall of this is:- ");
+r = accuracyMatrix(2,2)/accuracyMatrix(2,1)+accuracyMatrix(2,2);
+r
+end
+toc
+function [label, step] = k_means(data, clusters, num)
+ % initialize
+   index = randperm(num, clusters); 
+   dis = zeros(num, clusters);
+   label = zeros(num, 1);
+   center = data(index, :);
+   step = 0;                 
+   while(1) 
+       % save the centers for each clusters of last iteration
+       pre_center = center;
+       % calculate distance between data points and cluster centers
+       for i = 1:num
+           for j = 1:clusters
+               dis(i, j) = norm(data(i,:) - center(j, :));
+           end
+       end
+       % construct new clusters
+       for i = 1:num
+           label(i) = find(dis(i,:)==min(dis(i,:)));
+       end
+       % attain new centers
+       for i = 1:clusters
+           one_cluster = data(find(label==i), :); 
+           center(i, :) = mean(one_cluster);
+       end
+       % test the terminating condition
+       if (center == pre_center)
+           break;
+       end
+       step = step + 1;
+   end
+end
